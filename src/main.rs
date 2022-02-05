@@ -69,11 +69,11 @@ fn handle_word_file(path: &Path, enable_archive: bool) {
             create_dir(to.parent().unwrap()).unwrap_or_default();
             match rename(path, to) {
                 Ok(_) => println!("{filename} moved to imported/"),
-                Err(e) => println!("Archive {filename} failed: {:#}", e),
+                Err(e) => println!("Archive {filename} failed: {:?}", e),
             }
         }
-        Ok(Some(e)) => println!("Anki error {:#}", e),
-        Err(e) => println!("{:#}", e),
+        Ok(Some(e)) => println!("Anki error {:#?}", e),
+        Err(e) => println!("{:#?}", e),
     }
 }
 
