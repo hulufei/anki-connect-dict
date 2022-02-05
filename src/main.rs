@@ -23,6 +23,9 @@ fn gui_add_cards(front: &str, back: &str) -> Result<Response, Error> {
             "fields": {
                 "Front": "{front}",
                 "Back": "{back}"
+            },
+            "options": {
+                "closeAfterAdding": true
             }
         }
     }
@@ -34,7 +37,7 @@ fn gui_add_cards(front: &str, back: &str) -> Result<Response, Error> {
         .send()
 }
 
-fn get_dict_back<P: AsRef<Path>>(path: P) -> Option<String> {
+fn get_word_back<P: AsRef<Path>>(path: P) -> Option<String> {
     let content = read_to_string(path).unwrap();
     let mut partitions = content.split("<body>");
     partitions = partitions.nth(1).unwrap().split("</body>");
@@ -51,7 +54,7 @@ fn handle_word_file(path: &Path, enable_archive: bool) {
     let filename = path.file_name().unwrap().to_string_lossy();
     let mut partitions = filename.split('.');
     let front = partitions.next().unwrap();
-    let back = get_dict_back(path).expect("get dict back failed");
+    let back = get_word_back(path).expect("Get word's back failed");
     let back = json::stringify(back);
     // let back = json::stringify(r#"<p class="p1">test</p>"#);
     let back = back.trim_matches('"');
@@ -68,7 +71,7 @@ fn handle_word_file(path: &Path, enable_archive: bool) {
             let to = path.with_file_name(format!("imported/{filename}"));
             create_dir(to.parent().unwrap()).unwrap_or_default();
             match rename(path, to) {
-                Ok(_) => println!("{filename} moved to imported/"),
+                Ok(_) => println!("{filename} archived to imported/"),
                 Err(e) => println!("Archive {filename} failed: {:?}", e),
             }
         }
@@ -79,21 +82,21 @@ fn handle_word_file(path: &Path, enable_archive: bool) {
 
 fn main() {
     let mut args = std::env::args();
-    let file_path = args.nth(1).expect("html file required");
+    let file_path = args.nth(1).expect("Html word file required");
     let path = Path::new(&file_path);
     if path.is_dir() {
         // Watch vocabulary directory
         let (tx, rx) = channel();
-        let mut watcher = watcher(tx, Duration::from_secs(5)).unwrap();
+        let mut watcher = watcher(tx, Duration::from_secs(10)).unwrap();
         watcher.watch(path, RecursiveMode::NonRecursive).unwrap();
         println!("Watching {:?}", path);
         loop {
             match rx.recv() {
-                Ok(DebouncedEvent::Create(p)) if p.is_file() => {
+                Ok(DebouncedEvent::Create(p) | DebouncedEvent::NoticeRemove(p)) if p.is_file() => {
                     handle_word_file(&p, true);
                 }
-                Err(e) => println!("watch error: {:?}", e),
-                _ => (),
+                Err(e) => println!("Watch error: {:?}", e),
+                Ok(e) => println!("Notify event: {:?}", e),
             }
         }
     } else {
