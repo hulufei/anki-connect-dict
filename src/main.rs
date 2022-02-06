@@ -69,7 +69,7 @@ fn handle_word_file(path: &Path, enable_archive: bool) {
             }
             // Move to imported directory
             let to = path.with_file_name(format!("imported/{filename}"));
-            create_dir(to.parent().unwrap()).unwrap_or_default();
+            to.parent().map(create_dir);
             match rename(path, to) {
                 Ok(_) => println!("{filename} archived to imported/"),
                 Err(e) => println!("Archive {filename} failed: {:?}", e),
