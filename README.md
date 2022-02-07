@@ -1,11 +1,11 @@
 # Anki Dictionary.app Helper
 
-This small tool help adding vocabulary from **Dictionary.app** as Anki card more convenient.
+A small tool help to add vocabulary from **Dictionary.app** as Anki card more convenient.
 
 ## Requirement
 
 - [Anki-Connect](https://foosoft.net/projects/anki-connect/)
-- Make sure Anki is open
+- Keep Anki running
 
 To copy from **Dictionary.app** with styles, first open **TextEdit.app**, click
 `Services > Services Preferences`, check `New TextEdit With Selected Contents`,
