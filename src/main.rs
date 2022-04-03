@@ -1,4 +1,8 @@
+mod query_browse_cards;
+mod word_frequency;
+
 use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
+use query_browse_cards::{open_browse, ANKI_SERVER};
 use reqwest::{blocking::Response, Error};
 use serde::Deserialize;
 use std::{
@@ -7,8 +11,7 @@ use std::{
     sync::mpsc::channel,
     time::Duration,
 };
-
-const ANKI_SERVER: &'static str = "http://127.0.0.1:8765";
+use word_frequency::contain;
 
 fn gui_add_cards(front: &str, back: &str) -> Result<Response, Error> {
     let client = reqwest::blocking::Client::new();
@@ -26,14 +29,24 @@ fn gui_add_cards(front: &str, back: &str) -> Result<Response, Error> {
             },
             "options": {
                 "closeAfterAdding": true
-            }
+            },
+            "tags": {tags}
         }
     }
 }
     "#;
+    let tags = if contain(front) {
+        vec!["coca", "coca-5000"]
+    } else {
+        vec![]
+    };
     client
         .post(ANKI_SERVER)
-        .body(body.replace("{front}", front).replace("{back}", back))
+        .body(
+            body.replace("{front}", front)
+                .replace("{back}", back)
+                .replace("{tags}", &serde_json::to_string(&tags).unwrap()),
+        )
         .send()
 }
 
@@ -82,24 +95,31 @@ fn handle_word_file(path: &Path, enable_archive: bool) {
 
 fn main() {
     let mut args = std::env::args();
-    let file_path = args.nth(1).expect("Html word file required");
-    let path = Path::new(&file_path);
-    if path.is_dir() {
-        // Watch vocabulary directory
-        let (tx, rx) = channel();
-        let mut watcher = watcher(tx, Duration::from_secs(10)).unwrap();
-        watcher.watch(path, RecursiveMode::NonRecursive).unwrap();
-        println!("Watching {:?}", path);
-        loop {
-            match rx.recv() {
-                Ok(DebouncedEvent::Create(p) | DebouncedEvent::NoticeRemove(p)) if p.is_file() => {
-                    handle_word_file(&p, true);
+    match args.nth(1).as_deref() {
+        Some("t") => open_browse(),
+        Some(file_path) => {
+            let path = Path::new(file_path);
+            if path.is_dir() {
+                // Watch vocabulary directory
+                let (tx, rx) = channel();
+                let mut watcher = watcher(tx, Duration::from_secs(10)).unwrap();
+                watcher.watch(path, RecursiveMode::NonRecursive).unwrap();
+                println!("Watching {:?}", path);
+                loop {
+                    match rx.recv() {
+                        Ok(DebouncedEvent::Create(p) | DebouncedEvent::NoticeRemove(p))
+                            if p.is_file() =>
+                        {
+                            handle_word_file(&p, true);
+                        }
+                        Err(e) => println!("Watch error: {:?}", e),
+                        Ok(e) => println!("Notify event: {:?}", e),
+                    }
                 }
-                Err(e) => println!("Watch error: {:?}", e),
-                Ok(e) => println!("Notify event: {:?}", e),
+            } else {
+                handle_word_file(path, false);
             }
         }
-    } else {
-        handle_word_file(path, false);
+        _ => panic!("Html word file required"),
     }
 }
