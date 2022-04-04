@@ -21,7 +21,7 @@ fn gui_add_cards(front: &str, back: &str) -> Result<Response, Error> {
     "version": 6,
     "params": {
         "note": {
-            "deckName": "Default",
+            "deckName": "{deck}",
             "modelName": "Basic",
             "fields": {
                 "Front": "{front}",
@@ -35,16 +35,19 @@ fn gui_add_cards(front: &str, back: &str) -> Result<Response, Error> {
     }
 }
     "#;
-    let tags = if contain(front) {
-        vec!["coca", "coca-5000"]
+    let (tags, deck) = if contain(front) {
+        (vec!["coca", "coca-5000"], "Default")
     } else {
-        vec![]
+        // If encounter next time(anki will show duplicate warning),
+        // move card from Inbox to Default manually, maybe automatically later
+        (vec![], "Inbox")
     };
     client
         .post(ANKI_SERVER)
         .body(
             body.replace("{front}", front)
                 .replace("{back}", back)
+                .replace("{deck}", deck)
                 .replace("{tags}", &serde_json::to_string(&tags).unwrap()),
         )
         .send()

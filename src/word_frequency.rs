@@ -1,4 +1,4 @@
-use csv::ReaderBuilder;
+use csv::{ByteRecord, ReaderBuilder};
 // use std::error::Error;
 
 // struct Rank(u32);
@@ -18,9 +18,16 @@ use csv::ReaderBuilder;
 // }
 
 pub fn contain(word: &str) -> bool {
+    let bytes = word.as_bytes();
     let mut rdr = ReaderBuilder::new()
         .from_path("./src/wordFrequency-5000.csv")
         .expect("word frequency file should exist");
-    rdr.records()
-        .any(|record| record.expect("record should parsed").get(1) == Some(word))
+    // https://docs.rs/csv/1.1.6/csv/tutorial/index.html#performance
+    let mut record = ByteRecord::new();
+    while let Ok(true) = rdr.read_byte_record(&mut record) {
+        if record.get(1) == Some(bytes) {
+            return true;
+        }
+    }
+    false
 }
