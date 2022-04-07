@@ -68,3 +68,7 @@ span.s2, span.s8, span.s9 { font-size: 1em; }
 span.s4 { font-size: 0.8em; }
 span.s6, span.s7 { font-size: 0.85em; }
 ```
+
+## Resources
+
+- [Word frequency data](https://www.wordfrequency.info/samples.asp)
